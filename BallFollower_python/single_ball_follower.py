@@ -27,13 +27,16 @@ def translate(value, oldMin, oldMax, newMin=-100, newMax=100):
     NewValue = (((value - oldMin) * newRange) / oldRange) + newMin
     return int(NewValue)
 
-def get_regular_objects(contours):
+def get_regular_objects(contours, minArea=0.0):
     regular_objects = []
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     for cnt in contours:
         try:
+            if cv2.contourArea(cnt) < minArea:
+                continue
             hull = cv2.convexHull(cnt)
+            area = cv2.convexHull(cnt)
             hull_area = cv2.contourArea(hull)
             solidity = float(area)/hull_area if hull_area > 0 else 0
             print(f"is solidity greater than 0.8?: {solidity > THR_SOLIDITY}")
@@ -50,12 +53,14 @@ def get_regular_objects(contours):
 
     return regular_objects
             
-def get_ball_like_objects(contours):
+def get_ball_like_objects(contours, minArea=0.0):
     balls = []
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
     
     for cnt in contours:
         try:
+            if cv2.contourArea(cnt) < minArea:
+                continue
             (x,y),radius = cv2.minEnclosingCircle(cnt)
             center = (int(x),int(y))
             radius = int(radius)
@@ -166,21 +171,17 @@ while True:
         
         # get contours of objects in image
         contours = getContours(mask)
-
-
-        # get bounding boxes for contrours
-        minimalContourArea = (width * height)/256
-        boundingBoxes = getBoundingBoxes(contours, minimalContourArea)
-        
-
-
+      
         # draw ROI on image
         xROI, yROI = width//2 - roiSize[1]//2 , height//2 - roiSize[0]//2
         cv2.rectangle(frame, (xROI, yROI), (xROI + roiSize[0], yROI + roiSize[1]), (0, 0, 0), thickness=3)
-
-
+        minimalContourArea = (width * height)/256
         # draw bounding boxes, find largest object
         if not grabCircles:
+
+            # get bounding boxes for contrours
+            
+            boundingBoxes = getBoundingBoxes(contours, minimalContourArea)
 
             for i, boundingBox in enumerate(boundingBoxes):
             
@@ -212,7 +213,7 @@ while True:
                     cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (255, 255, 0), thickness=2)
                  
         else:
-            piłkas = get_ball_like_objects(contours)
+            piłkas = get_ball_like_objects(contours, minimalContourArea)
             for i, boundingBox in enumerate(piłkas):
                        
                 x, y, w, h = boundingBox
