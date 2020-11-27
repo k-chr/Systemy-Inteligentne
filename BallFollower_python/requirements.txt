@@ -1,2 +1,5 @@
+scikit-build
+numpy
 opencv-python
 imutils
+pySerial

@@ -30,7 +30,7 @@ def translate(value, oldMin, oldMax, newMin=-100, newMax=100):
 def get_regular_objects(contours, minArea=0.0):
     regular_objects = []
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
-
+    
     for cnt in contours:
         try:
             if cv2.contourArea(cnt) < minArea:
@@ -52,7 +52,21 @@ def get_regular_objects(contours, minArea=0.0):
             pass
 
     return regular_objects
-            
+
+def getCircularContours(contours, minimalCountourArea):
+    circularContours = []
+    if (contours is not None) and (len(contours) > 0):
+        for contour in contours:
+            # approximate contour with polygon where maximum distance from contour to approximated contour is 1% of perimeter
+            approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
+            # get contour area
+            area = cv2.contourArea(contour)
+            # check if number of angles is greater then 8, contour area is bigger then minimal and the approximated contour is convex
+            if (len(approx) > 8) and (area > minimalCountourArea) and (cv2.isContourConvex(approx)):
+                circularContours.append(contour)
+                
+    return circularContours
+
 def get_ball_like_objects(contours, minArea=0.0):
     balls = []
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
@@ -87,7 +101,7 @@ def preprocessMask(mask, iterations):
     kernel = np.ones((6,6),np.uint8)
     # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
     mask = cv2.dilate(mask, kernel, iterations=iterations)
-    kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4,4))
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
     mask = cv2.erode(mask, kernel2, iterations=iterations)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
@@ -213,7 +227,7 @@ while True:
                     cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (255, 255, 0), thickness=2)
                  
         else:
-            piłkas = get_ball_like_objects(contours, minimalContourArea)
+            piłkas = get_ball_like_objects(getCircularContours(contours, minimalContourArea), minimalContourArea)
             for i, boundingBox in enumerate(piłkas):
                        
                 x, y, w, h = boundingBox
