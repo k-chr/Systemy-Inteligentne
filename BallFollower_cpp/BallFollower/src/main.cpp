@@ -26,13 +26,10 @@ boolean newData = false;
 
 float yawRequested = 0;
 float pitchRequested = 0;
+float velocityLeftRequested = 0;
+float velocityRightRequested = 0;
 
 
-float yawErrorAccumulated = 0;
-float pitchErrorAccumulated = 0;
-//============
-
-//============
 
 void recvWithStartEndMarkers() {
     static boolean recvInProgress = false;
@@ -105,12 +102,14 @@ void setup() {
     Serial.println("Enter data in this style <HelloWorld, 12, 24.7>  ");
     Serial.println();
 
-    initMotors();
 
     // Each platform has to do this independently, checked manually
     calibrateServo(ServoSelector::Yaw, (int)YawCalibrationCenter);
     calibrateServo(ServoSelector::Pitch, (int)PitchCalibrationCenter);
 
+    initMotors();
+    initEncoders();
+    initPWM();
     initServos();
     centerServos();
 
@@ -131,7 +130,13 @@ void loop() {
       
     // parse input data
     recvWithStartEndMarkers();
-
+    {
+        nowTime = millis();  
+        motorA.Compute();  
+        motorB.Compute(); 
+        SetPowerLevel(EngineSelector::Left, outputA);
+        SetPowerLevel(EngineSelector::Right, outputB);
+    }
     if (newData == true) {
         strcpy(tempChars, receivedChars);
             // this temporary copy is necessary to protect the original data
@@ -147,7 +152,7 @@ void loop() {
                 pitchRequested = packet.second;
 
                 {
-                    // float yawError = -(yawRequested / (HorizontalFOV/2) );
+                    //float yawError = -(yawRequested / (HorizontalFOV/2) );
                     float yawError = -yawRequested;
                     float Kp = 25.0f;
                     float Ki = 4.0f;

@@ -177,12 +177,59 @@ void initMotors()
 {
     pinMode(IN1, OUTPUT);
     pinMode(IN2, OUTPUT);
-    pinMode(ENA, OUTPUT);
+    pinMode(PWMA, OUTPUT);
 
     pinMode(IN4, OUTPUT);
     pinMode(IN3, OUTPUT);
-    pinMode(ENB, OUTPUT);
+    pinMode(PWMB, OUTPUT);
+
+    analogWriteResolution(ANALOG_WRITE_BITS);  
+    
 }
+
+void isr_A()
+{
+  countIntA++;  
+  if (countIntA == INT_COUNT){  
+    inputA = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeA);  
+    startTimeA = nowTime;  
+    countIntA = 0;  
+  }  
+}
+
+void isr_B()
+{
+  countIntB++;  
+  if (countIntB == INT_COUNT){  
+    inputB = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeB);  
+    startTimeB = nowTime;  
+    countIntB = 0;  
+  }  
+}
+
+void initEncoders()
+{  
+  pinMode(ENA, INPUT_PULLUP);  
+  pinMode(ENB, INPUT_PULLUP);  
+  attachInterrupt(digitalPinToInterrupt(ENA), isr_A, RISING);  
+  attachInterrupt(digitalPinToInterrupt(ENB), isr_B, RISING);  
+} 
+
+
+
+void initPWM()
+{  
+  startTimeA = millis();  
+  startTimeB = millis();  
+  motorA.SetOutputLimits(MIN_PWM, MAX_PWM);  
+  motorB.SetOutputLimits(MIN_PWM, MAX_PWM);  
+  motorA.SetSampleTime(SAMPLE_TIME);  
+  motorB.SetSampleTime(SAMPLE_TIME);  
+  motorA.SetMode(AUTOMATIC);  
+  motorB.SetMode(AUTOMATIC);  
+}  
+
+
 
 void initLED()
 {

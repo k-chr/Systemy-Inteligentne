@@ -63,7 +63,7 @@ def getCircularContours(contours, minimalCountourArea):
             area = cv2.contourArea(contour)
             # check if number of angles is greater then 8, contour area is bigger then minimal and the approximated contour is convex
             if (len(approx) > 8) and (area > minimalCountourArea) and (cv2.isContourConvex(approx)):
-                circularContours.append(contour)
+                circularContours.append(approx)
                 
     return circularContours
 
