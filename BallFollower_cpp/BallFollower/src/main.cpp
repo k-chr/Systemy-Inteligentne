@@ -113,6 +113,10 @@ void setup() {
     initServos();
     centerServos();
 
+    servoY.SetMode(AUTOMATIC);
+    servoP.SetMode(AUTOMATIC);
+    inputSA = 0;
+    servoY.SetOutputLimits(-90, 90);
     initESP826();
     // initLED();
     Brake();
@@ -130,13 +134,14 @@ void loop() {
       
     // parse input data
     recvWithStartEndMarkers();
-    {
-        nowTime = millis();  
-        motorA.Compute();  
-        motorB.Compute(); 
-        SetPowerLevel(EngineSelector::Left, outputA);
-        SetPowerLevel(EngineSelector::Right, outputB);
-    }
+    // {
+    //     nowTime = millis();  
+    //     motorA.Compute();  
+    //     motorB.Compute(); 
+    //     SetPowerLevel(EngineSelector::Left, outputA);
+    //     SetPowerLevel(EngineSelector::Right, outputB);
+    // }
+
     if (newData == true) {
         strcpy(tempChars, receivedChars);
             // this temporary copy is necessary to protect the original data
@@ -153,14 +158,13 @@ void loop() {
 
                 {
                     //float yawError = -(yawRequested / (HorizontalFOV/2) );
-                    float yawError = -yawRequested;
-                    float Kp = 25.0f;
-                    float Ki = 4.0f;
-
-                    float output = Kp * yawError + Ki * yawErrorAccumulated;
-                    yawErrorAccumulated += yawError;
                     
-                    moveServo(ServoSelector::Yaw, (int)(YawCalibrationCenter + output));
+                    setpointSA = -yawRequested;
+                    servoY.Compute();
+  
+                    float output = outputSA + YawCalibrationCenter ;
+                    Serial.printf("output %d\n", (int)output);
+                    moveServo(ServoSelector::Yaw, (int)(output));
 
                 }
                 {

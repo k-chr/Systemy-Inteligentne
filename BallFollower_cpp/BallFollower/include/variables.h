@@ -35,10 +35,22 @@ const uint8_t PWMB=22;
 
 double KpA = 0.20, KiA = 0.20, KdA = 0;  
 double KpB = 0.20, KiB = 0.20, KdB = 0;  
+float Kp = 20.0f;
+float Ki = 8.0f;
+float Kd = 0.5f;
 
+
+//PID SERVOS
 float yawErrorAccumulated = 0;
 float pitchErrorAccumulated = 0;
+double inputSA = 0;              // input is PWM to motors  
+double outputSA = 0;             // output is rotational speed in Hz  
+double setpointSB = 150;         // setpoint is rotational speed in Hz  
+double inputSB = 0;              // input is PWM to motors  
+double outputSB = 0; 
+double setpointSA = 150;         // setpoint is rotational speed in Hz  
 
+//PID TIME DC
 unsigned long nowTime = 0;       // updated on every loop  
 unsigned long startTimeA = 0;    // start timing A interrupts  
 unsigned long startTimeB = 0;    // start timing B interrupts  
@@ -46,7 +58,7 @@ unsigned long countIntA = 0;     // count the A interrupts
 unsigned long countIntB = 0;     // count the B interrupts  
 double periodA = 0;              // motor A period  
 double periodB = 0;              // motor B period  
-// PID   
+// PID  motors DC
 const unsigned long SAMPLE_TIME = 100;  // time between PID updates  
 const unsigned long INT_COUNT = 20;     // sufficient interrupts for accurate timing  
 double setpointA = 150;         // setpoint is rotational speed in Hz  
@@ -58,6 +70,10 @@ double outputB = 0;             // output is rotational speed in Hz
 //============
 PID motorA(&inputA, &outputA, &setpointA, KpA, KiA, KdA, DIRECT);  
 PID motorB(&inputB, &outputB, &setpointB, KpB, KiB, KdB, DIRECT);  
+
+
+PID servoY(&inputSA, &outputSA, &setpointSA, Kp, Ki, Kd, DIRECT);
+PID servoP(&inputSB, &outputSB, &setpointSB, Kp, Ki, Kd, DIRECT);
 
 //============
 
