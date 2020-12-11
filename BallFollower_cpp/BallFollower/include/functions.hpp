@@ -14,14 +14,14 @@ void _softRestart()
 
 void MotorL_Brake()      
 {
-  digitalWrite(IN1,LOW); 
-  digitalWrite(IN2,LOW); 
+  digitalWrite(IN_LEFT1,LOW); 
+  digitalWrite(IN_LEFT2,LOW); 
 }  
 
 void MotorR_Brake()
 {
-  digitalWrite(IN3,LOW); 
-  digitalWrite(IN4,LOW); 
+  digitalWrite(IN_RIGHT1,LOW); 
+  digitalWrite(IN_RIGHT2,LOW); 
 }
 
 void Brake()
@@ -35,15 +35,15 @@ void MotorL_Move(int level)
 {
   if(level < 0)
   {
-    digitalWrite(IN1,HIGH); 
-    digitalWrite(IN2,LOW);  
-    analogWrite(ENA,-level);
+    digitalWrite(IN_LEFT1,HIGH); 
+    digitalWrite(IN_LEFT2,LOW);  
+    analogWrite(PWM_LEFT,-level);
   }
   else if (level > 0)
   {
-    digitalWrite(IN1,LOW);
-    digitalWrite(IN2,HIGH);  
-    analogWrite(ENA,level);
+    digitalWrite(IN_LEFT1,LOW);
+    digitalWrite(IN_LEFT2,HIGH);  
+    analogWrite(PWM_LEFT,level);
   }
   else
   {
@@ -56,15 +56,15 @@ void MotorR_Move(int level)
 {
   if(level < 0)
   {
-    digitalWrite(IN3,HIGH); 
-    digitalWrite(IN4,LOW);  
-    analogWrite(ENB,-level);
+    digitalWrite(IN_RIGHT1,HIGH); 
+    digitalWrite(IN_RIGHT2,LOW);  
+    analogWrite(PWM_RIGHT,-level);
   }
   else if (level > 0)
   {
-    digitalWrite(IN3,LOW); 
-    digitalWrite(IN4,HIGH);  
-    analogWrite(ENB,level);
+    digitalWrite(IN_RIGHT1,LOW); 
+    digitalWrite(IN_RIGHT2,HIGH);  
+    analogWrite(PWM_RIGHT,level);
   }
   else
   {
@@ -175,33 +175,36 @@ void initESP826()
 
 void initMotors()
 {
-    pinMode(IN1, OUTPUT);
-    pinMode(IN2, OUTPUT);
-    pinMode(PWMA, OUTPUT);
+    pinMode(IN_LEFT1, OUTPUT);
+    pinMode(IN_LEFT2, OUTPUT);
+    pinMode(PWM_LEFT, OUTPUT);
 
-    pinMode(IN4, OUTPUT);
-    pinMode(IN3, OUTPUT);
-    pinMode(PWMB, OUTPUT);
+    pinMode(IN_RIGHT2, OUTPUT);
+    pinMode(IN_RIGHT1, OUTPUT);
+    pinMode(PWM_RIGHT, OUTPUT);
 
     analogWriteResolution(ANALOG_WRITE_BITS);  
     
 }
 
-void isr_A()
+void isr_RIGHT_BACK()
 {
+  //Serial.printf("Interrupt RIGHT_BACK handler called\n");
   countIntA++;  
   if (countIntA == INT_COUNT){  
-    inputA = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeA);  
+    inputRightBack = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeA);  
     startTimeA = nowTime;  
     countIntA = 0;  
   }  
 }
 
-void isr_B()
+void isr_LEFT_BACK()
 {
+  //Serial.printf("Interrupt LEFT_BACK handler called\n");
+
   countIntB++;  
   if (countIntB == INT_COUNT){  
-    inputB = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeB);  
+    inputLeftBack = (float) INT_COUNT * 1000 / (float)(nowTime - startTimeB);  
     startTimeB = nowTime;  
     countIntB = 0;  
   }  
@@ -209,10 +212,11 @@ void isr_B()
 
 void initEncoders()
 {  
-  pinMode(ENA, INPUT_PULLUP);  
-  pinMode(ENB, INPUT_PULLUP);  
-  attachInterrupt(digitalPinToInterrupt(ENA), isr_A, RISING);  
-  attachInterrupt(digitalPinToInterrupt(ENB), isr_B, RISING);  
+  Serial.printf("Encoders init\n");
+  pinMode(EN_LEFT_BACK, INPUT_PULLUP);  
+  pinMode(EN_RIGHT_BACK, INPUT_PULLUP);  
+  attachInterrupt(digitalPinToInterrupt(EN_LEFT_BACK), isr_LEFT_BACK, FALLING);  
+  attachInterrupt(digitalPinToInterrupt(EN_RIGHT_BACK), isr_RIGHT_BACK, FALLING);  
 } 
 
 
@@ -221,12 +225,12 @@ void initPWM()
 {  
   startTimeA = millis();  
   startTimeB = millis();  
-  motorA.SetOutputLimits(MIN_PWM, MAX_PWM);  
-  motorB.SetOutputLimits(MIN_PWM, MAX_PWM);  
-  motorA.SetSampleTime(SAMPLE_TIME);  
-  motorB.SetSampleTime(SAMPLE_TIME);  
-  motorA.SetMode(AUTOMATIC);  
-  motorB.SetMode(AUTOMATIC);  
+  motorRightBack.SetOutputLimits(MIN_PWM, MAX_PWM);  
+  motorLeftBack.SetOutputLimits(MIN_PWM, MAX_PWM);  
+  motorRightBack.SetSampleTime(SAMPLE_TIME);  
+  motorLeftBack.SetSampleTime(SAMPLE_TIME);  
+  motorRightBack.SetMode(AUTOMATIC);  
+  motorLeftBack.SetMode(AUTOMATIC);  
 }  
 
 

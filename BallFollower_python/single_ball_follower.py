@@ -16,8 +16,8 @@ import numpy as np
 import cv2
 from math import pi
 
-THR_CIRCULARITY = 0.25
-THR_SOLIDITY = 0.9
+THR_CIRCULARITY = 0.3
+THR_SOLIDITY = 0.8
 THR_ELLIPSE_SEMI_AXES_FACTOR = 0.2
 
 def translate(value, oldMin, oldMax, newMin=-100, newMax=100):
@@ -55,22 +55,25 @@ def get_regular_objects(contours, minArea=0.0):
 
 def getCircularContours(contours, minimalCountourArea):
     circularContours = []
+
     if (contours is not None) and (len(contours) > 0):
         for contour in contours:
             # approximate contour with polygon where maximum distance from contour to approximated contour is 1% of perimeter
-            approx = cv2.approxPolyDP(contour, 0.01*cv2.arcLength(contour, True), True)
+            approx = cv2.approxPolyDP(contour, 0.03*cv2.arcLength(contour, True), True)
             # get contour area
             area = cv2.contourArea(contour)
             # check if number of angles is greater then 8, contour area is bigger then minimal and the approximated contour is convex
-            if (len(approx) > 8) and (area > minimalCountourArea) and (cv2.isContourConvex(approx)):
+            if (len(approx) >= 7) and (area > minimalCountourArea) and (cv2.isContourConvex(approx)):
                 circularContours.append(approx)
-                
+            else:
+                print(len(approx)) 
+                print(area > minimalContourArea)   
     return circularContours
 
 def get_ball_like_objects(contours, minArea=0.0):
     balls = []
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
-    
+
     for cnt in contours:
         try:
             if cv2.contourArea(cnt) < minArea:
@@ -86,6 +89,7 @@ def get_ball_like_objects(contours, minArea=0.0):
             if(circle_area > 0 and abs(area/circle_area - 1) < THR_CIRCULARITY):
                 x,y,w,h = cv2.boundingRect(cnt)
                 balls.append((x,y,w,h))
+            
         except:
             pass
     
@@ -98,10 +102,10 @@ def getContours(image, mode=cv2.RETR_EXTERNAL):
     return contours
 
 def preprocessMask(mask, iterations):
-    kernel = np.ones((6,6),np.uint8)
+    kernel = np.ones((7,7),np.uint8)
     # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
     mask = cv2.dilate(mask, kernel, iterations=iterations)
-    kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+    kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
     mask = cv2.erode(mask, kernel2, iterations=iterations)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
     # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
@@ -166,7 +170,7 @@ while True:
     grabCircles = True
     if not paused:
 
-        frame = vs.read()     
+        frame = vs.read() 
         height, width = frame.shape[0:2]
 
         blurred = cv2.GaussianBlur(frame, (5, 5), 0)

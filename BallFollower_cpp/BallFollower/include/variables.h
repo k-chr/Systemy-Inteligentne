@@ -5,7 +5,15 @@
 #include <PID_v1.h>
 #define SCB_AIRCR (*(volatile uint32_t *)0xE000ED0C) // Application Interrupt and Reset Control location
 
-
+/*
+ENKODERY:
+    2 i 3   
+	4 i 5
+	14 i 15 **DZIALA LB
+	16 i 17 **DZIALA RB
+    3 łopatki: 12 impulsów na obrót silnika*
+    5 łopatek: 20 impulsów na obrót silnika*
+*/
 // communication over serial
 struct dataPacket 
 {
@@ -21,20 +29,20 @@ struct dataPacket
 
 const uint16_t ANALOG_WRITE_BITS = 8;  
 const uint16_t MAX_PWM = pow(2, ANALOG_WRITE_BITS)-1;  
-const uint16_t MIN_PWM = MAX_PWM / 4; 
+const uint16_t MIN_PWM = 0; 
 // constants for motor driver
-const uint8_t IN1=25;
-const uint8_t IN2=26;
-const uint8_t ENA=23;
-const uint8_t PWMA=23;
+const uint8_t IN_LEFT1=25;
+const uint8_t IN_LEFT2=26;
+const uint8_t EN_LEFT_BACK=14;
+const uint8_t PWM_LEFT=23;
 
-const uint8_t IN3=27;
-const uint8_t IN4=28;
-const uint8_t ENB=22;
-const uint8_t PWMB=22;
+const uint8_t IN_RIGHT1=27;
+const uint8_t IN_RIGHT2=28;
+const uint8_t EN_RIGHT_BACK=16;
+const uint8_t PWM_RIGHT=22;
 
-double KpA = 0.20, KiA = 0.20, KdA = 0;  
-double KpB = 0.20, KiB = 0.20, KdB = 0;  
+double KpM = 0.02, KiM = 0.20, KdM = 0;  
+ 
 float Kp = 20.0f;
 float Ki = 8.0f;
 float Kd = 0.5f;
@@ -61,15 +69,15 @@ double periodB = 0;              // motor B period
 // PID  motors DC
 const unsigned long SAMPLE_TIME = 100;  // time between PID updates  
 const unsigned long INT_COUNT = 20;     // sufficient interrupts for accurate timing  
-double setpointA = 150;         // setpoint is rotational speed in Hz  
-double inputA = 0;              // input is PWM to motors  
-double outputA = 0;             // output is rotational speed in Hz  
-double setpointB = 150;         // setpoint is rotational speed in Hz  
-double inputB = 0;              // input is PWM to motors  
-double outputB = 0;             // output is rotational speed in Hz 
+double setpointRightBack = 150;         // setpoint is rotational speed in Hz  
+double inputRightBack = 0;              // input is PWM to motors  
+double outputRightBack = 0;             // output is rotational speed in Hz  
+double setpointLeftBack = 150;         // setpoint is rotational speed in Hz  
+double inputLeftBack = 0;              // input is PWM to motors  
+double outputLeftBack = 0;             // output is rotational speed in Hz 
 //============
-PID motorA(&inputA, &outputA, &setpointA, KpA, KiA, KdA, DIRECT);  
-PID motorB(&inputB, &outputB, &setpointB, KpB, KiB, KdB, DIRECT);  
+PID motorRightBack(&inputRightBack, &outputRightBack, &setpointRightBack, KpM, KiM, KdM, DIRECT);  
+PID motorLeftBack(&inputLeftBack, &outputLeftBack, &setpointLeftBack, KpM, KiM, KdM, DIRECT);  
 
 
 PID servoY(&inputSA, &outputSA, &setpointSA, Kp, Ki, Kd, DIRECT);
@@ -125,7 +133,7 @@ boolean ledState = HIGH;
 //constants for servos
 //left-right
 Servo servoYaw;
-int yawMin = 45, yawMax = 135, yawCenter = 90, yawCurrent = 90;
+int yawMin = 30, yawMax = 120, yawCenter = 90, yawCurrent = 90;
 //up-down
 Servo servoPitch;
 int pitchMin = 45, pitchMax = 135, pitchCenter = 90, pitchCurrent = 90;

@@ -11,7 +11,7 @@ This code is based on the examples at http://forum.arduino.cc/index.php?topic=39
 #include "functions.hpp"
 
 
-float YawCalibrationCenter = 80.0f;
+float YawCalibrationCenter = 73.0f;
 float PitchCalibrationCenter = 58.0f;
 
 const byte numChars = 64;
@@ -134,13 +134,26 @@ void loop() {
       
     // parse input data
     recvWithStartEndMarkers();
-    // {
-    //     nowTime = millis();  
-    //     motorA.Compute();  
-    //     motorB.Compute(); 
-    //     SetPowerLevel(EngineSelector::Left, outputA);
-    //     SetPowerLevel(EngineSelector::Right, outputB);
-    // }
+    {
+        nowTime = millis();
+        if(nowTime > 10000 && setpointLeftBack)
+        {
+            setpointLeftBack = 0;
+            Serial.println("SetPointLeftBack changed");
+        }  
+        //Serial.printf("Motor left back computed output %f\n", outputLeftBack);
+        //Serial.printf("Motor right back computed output %f\n", outputRightBack);
+
+        motorRightBack.Compute();  
+        //motorLeftBack.Compute(); 
+        Serial.print(motorLeftBack.Compute());
+        Serial.println();
+        //Serial.printf("Computed A output %d\n", analogRead(ENA));
+        //Serial.printf("Computed B output %d\n", analogRead(ENB));
+
+        SetPowerLevel(EngineSelector::Left, outputLeftBack);
+        SetPowerLevel(EngineSelector::Right,outputRightBack);
+    }
 
     if (newData == true) {
         strcpy(tempChars, receivedChars);
@@ -159,12 +172,21 @@ void loop() {
                 {
                     //float yawError = -(yawRequested / (HorizontalFOV/2) );
                     
-                    setpointSA = -yawRequested;
-                    servoY.Compute();
+                    float yawError = - yawRequested;
+                    float Kp = 25.0f;
+                    float Ki = 4.0f;
+
+                    float output = Kp * yawError + Ki * yawErrorAccumulated;
+                    yawErrorAccumulated += yawError;
+                    
+                    // move servo
+                    moveServo(ServoSelector::Yaw,  (int)(YawCalibrationCenter + output));
+                    // setpointSA = -yawRequested;
+                    // servoY.Compute();
   
-                    float output = outputSA + YawCalibrationCenter ;
-                    Serial.printf("output %d\n", (int)output);
-                    moveServo(ServoSelector::Yaw, (int)(output));
+                    // float output = outputSA + YawCalibrationCenter ;
+                    // Serial.printf("output %d\n", (int)output);
+                    // moveServo(ServoSelector::Yaw, (int)(output));
 
                 }
                 {
