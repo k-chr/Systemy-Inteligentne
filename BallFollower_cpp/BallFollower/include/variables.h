@@ -3,6 +3,7 @@
 #include <Servo.h>
 #include <Wire.h>
 #include <PID_v1.h>
+
 #define SCB_AIRCR (*(volatile uint32_t *)0xE000ED0C) // Application Interrupt and Reset Control location
 
 /*
@@ -22,6 +23,8 @@ struct dataPacket
     float second = 0.0f;
 
 };
+
+const int maxDistance = 200;
 
 
 //Timing
@@ -69,10 +72,10 @@ double periodB = 0;              // motor B period
 // PID  motors DC
 const unsigned long SAMPLE_TIME = 100;  // time between PID updates  
 const unsigned long INT_COUNT = 20;     // sufficient interrupts for accurate timing  
-double setpointRightBack = 150;         // setpoint is rotational speed in Hz  
+double setpointRightBack = 0;         // setpoint is rotational speed in Hz  
 double inputRightBack = 0;              // input is PWM to motors  
 double outputRightBack = 0;             // output is rotational speed in Hz  
-double setpointLeftBack = 150;         // setpoint is rotational speed in Hz  
+double setpointLeftBack = 0;         // setpoint is rotational speed in Hz  
 double inputLeftBack = 0;              // input is PWM to motors  
 double outputLeftBack = 0;             // output is rotational speed in Hz 
 //============

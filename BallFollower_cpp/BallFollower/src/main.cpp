@@ -9,7 +9,9 @@ This code is based on the examples at http://forum.arduino.cc/index.php?topic=39
 
 #include "variables.h"
 #include "functions.hpp"
-
+#include "NewPing.h"
+#include <Encoder.h>
+#include "ISAMobile.h"
 
 float YawCalibrationCenter = 73.0f;
 float PitchCalibrationCenter = 58.0f;
@@ -28,8 +30,19 @@ float yawRequested = 0;
 float pitchRequested = 0;
 float velocityLeftRequested = 0;
 float velocityRightRequested = 0;
+float motorOutputLimit = 100.0f;
+
+NewPing sonarMiddle(ultrasound_trigger_pin[(int)UltraSoundSensor::Front], 
+                     ultrasound_echo_pin[(int)UltraSoundSensor::Front], 
+                     maxDistance);
+
+unsigned int pingDelay = 30; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
+unsigned long pingTimer;     // Holds the next ping time.
 
 
+// ##########
+Encoder rightSide(ENCODER_REAR_RIGHT_1, ENCODER_REAR_RIGHT_2);
+Encoder leftSide(ENCODER_REAR_LEFT_1, ENCODER_REAR_LEFT_2);
 
 void recvWithStartEndMarkers() {
     static boolean recvInProgress = false;
@@ -95,20 +108,30 @@ void showParsedData(dataPacket packet) {
 
 
 
+void echoCheck() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
+  // Don't do anything here!
+  if (sonarMiddle.check_timer()) { // This is how you check to see if the ping was received.
+    // Here's where you can add code.
+    Serial.print("Ping: ");
+    Serial.print(sonarMiddle.ping_result / US_ROUNDTRIP_CM); // Ping returned, uS result in ping_result, convert to cm with US_ROUNDTRIP_CM.
+    Serial.println("cm");
+  }
+  // Don't do anything here!
+}
+
 void setup() {
 
     initSerial(115200);
     Serial.println("This demo expects 3 pieces of data - text, an integer and a floating point value");
     Serial.println("Enter data in this style <HelloWorld, 12, 24.7>  ");
     Serial.println();
-
+    pingTimer = millis(); // Start now.
 
     // Each platform has to do this independently, checked manually
     calibrateServo(ServoSelector::Yaw, (int)YawCalibrationCenter);
     calibrateServo(ServoSelector::Pitch, (int)PitchCalibrationCenter);
 
     initMotors();
-    // initEncoders();
     initPWM();
     initServos();
     centerServos();
@@ -117,6 +140,8 @@ void setup() {
     servoP.SetMode(AUTOMATIC);
     inputSA = 0;
     servoY.SetOutputLimits(-90, 90);
+    motorRightBack.SetOutputLimits(-motorOutputLimit, motorOutputLimit);
+    motorLeftBack.SetOutputLimits(-motorOutputLimit, motorOutputLimit);
     initESP826();
     // initLED();
     Brake();
@@ -128,10 +153,20 @@ void setup() {
 
 //============
 
-
+long positionLeft  = 0;
+long positionRight = 0;
 
 void loop() {
-      
+         // Notice how there's no delays in this sketch to allow you to do other processing in-line while doing distance pings.
+   if (millis() >= pingTimer)
+   {   // pingSpeed milliseconds since last ping, do another ping.
+      pingTimer += pingDelay;      // Set the next ping time.
+      sonarMiddle.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+      positionLeft = leftSide.read();
+      positionRight = rightSide.read();
+     // Serial.println("Left = " + String(positionLeft) + "; Right = " + String(positionRight));
+
+   }
     // parse input data
     recvWithStartEndMarkers();
     {
@@ -141,18 +176,6 @@ void loop() {
             setpointLeftBack = 0;
             Serial.println("SetPointLeftBack changed");
         }  
-        //Serial.printf("Motor left back computed output %f\n", outputLeftBack);
-        //Serial.printf("Motor right back computed output %f\n", outputRightBack);
-
-        motorRightBack.Compute();  
-        //motorLeftBack.Compute(); 
-        Serial.print(motorLeftBack.Compute());
-        Serial.println();
-        //Serial.printf("Computed A output %d\n", analogRead(ENA));
-        //Serial.printf("Computed B output %d\n", analogRead(ENB));
-
-        SetPowerLevel(EngineSelector::Left, outputLeftBack);
-        SetPowerLevel(EngineSelector::Right,outputRightBack);
     }
 
     if (newData == true) {
@@ -182,13 +205,6 @@ void loop() {
                     
                     // move servo
                     moveServo(ServoSelector::Yaw,  (int)(YawCalibrationCenter + output));
-                    // setpointSA = -yawRequested;
-                    // servoY.Compute();
-  
-                    // float output = outputSA + YawCalibrationCenter ;
-                    // Serial.printf("output %d\n", (int)output);
-                    // moveServo(ServoSelector::Yaw, (int)(output));
-
                 }
                 {
                     
@@ -205,8 +221,25 @@ void loop() {
                     moveServo(ServoSelector::Pitch,  (int)(PitchCalibrationCenter + output));
                 }
                  
-            }
+                {
+                    const double inputMotors = (YawCalibrationCenter - yawCurrent) * 1.5;
+                    setpointLeftBack = inputMotors;
+                    setpointRightBack = -inputMotors;
 
+                    motorRightBack.Compute();  
+                    motorLeftBack.Compute(); 
+
+                    
+                    SetPowerLevel(EngineSelector::Left, outputLeftBack);
+                    SetPowerLevel(EngineSelector::Right, outputRightBack);
+                    
+
+                    Serial.printf("yaw: %d, inputMotors: %f\n", yawCurrent, inputMotors);
+                    Serial.printf("leftOutput: %f, rightOutput: %f\n", outputLeftBack, outputRightBack);
+                    Serial.printf("Computed A output %d\n", leftSide.read());
+                    Serial.printf("Computed B output %d\n", rightSide.read());
+                }
+            }
         }
 
         if (strcmp(packet.message, "stop") == 0)
@@ -222,4 +255,3 @@ void loop() {
         newData = false;
     }
 }
-
