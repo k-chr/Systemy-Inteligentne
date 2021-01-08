@@ -53,21 +53,20 @@ def get_regular_objects(contours, minArea=0.0):
 
     return regular_objects
 
-def getCircularContours(contours, minimalCountourArea):
+def getCircularContours(contours):
     circularContours = []
 
     if (contours is not None) and (len(contours) > 0):
         for contour in contours:
             # approximate contour with polygon where maximum distance from contour to approximated contour is 1% of perimeter
-            approx = cv2.approxPolyDP(contour, 0.03*cv2.arcLength(contour, True), True)
+            approx = cv2.approxPolyDP(contour, 0.02*cv2.arcLength(contour, True), True)
             # get contour area
             area = cv2.contourArea(contour)
             # check if number of angles is greater then 8, contour area is bigger then minimal and the approximated contour is convex
-            if (len(approx) >= 7) and (area > minimalCountourArea) and (cv2.isContourConvex(approx)):
+            if (len(approx) >= 6):# and (cv2.isContourConvex(approx)):
                 circularContours.append(approx)
             else:
                 print(len(approx)) 
-                print(area > minimalContourArea)   
     return circularContours
 
 def get_ball_like_objects(contours, minArea=0.0):
@@ -170,10 +169,10 @@ while True:
     grabCircles = True
     if not paused:
 
-        frame = vs.read() 
+        frame = vs.read().copy()
         height, width = frame.shape[0:2]
 
-        blurred = cv2.GaussianBlur(frame, (5, 5), 0)
+        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
 
         frame_HSV = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
@@ -231,7 +230,7 @@ while True:
                     cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (255, 255, 0), thickness=2)
                  
         else:
-            piłkas = get_ball_like_objects(getCircularContours(contours, minimalContourArea), minimalContourArea)
+            piłkas = get_ball_like_objects(getCircularContours(contours), minimalContourArea)
             for i, boundingBox in enumerate(piłkas):
                        
                 x, y, w, h = boundingBox

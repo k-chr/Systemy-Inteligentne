@@ -108,7 +108,7 @@ void setup() {
     calibrateServo(ServoSelector::Pitch, (int)PitchCalibrationCenter);
 
     initMotors();
-    initEncoders();
+    // initEncoders();
     initPWM();
     initServos();
     centerServos();
@@ -177,6 +177,7 @@ void loop() {
                     float Ki = 4.0f;
 
                     float output = Kp * yawError + Ki * yawErrorAccumulated;
+                    output *= 0.8f;
                     yawErrorAccumulated += yawError;
                     
                     // move servo
@@ -197,6 +198,7 @@ void loop() {
                     float Ki = 3.0f;
 
                     float output = Kp * pitchError + Ki * pitchErrorAccumulated;
+                    output *= 0.8f;
                     pitchErrorAccumulated += pitchError;
                     
                     // move servo

@@ -210,14 +210,14 @@ void isr_LEFT_BACK()
   }  
 }
 
-void initEncoders()
-{  
-  Serial.printf("Encoders init\n");
-  pinMode(EN_LEFT_BACK, INPUT_PULLUP);  
-  pinMode(EN_RIGHT_BACK, INPUT_PULLUP);  
-  attachInterrupt(digitalPinToInterrupt(EN_LEFT_BACK), isr_LEFT_BACK, FALLING);  
-  attachInterrupt(digitalPinToInterrupt(EN_RIGHT_BACK), isr_RIGHT_BACK, FALLING);  
-} 
+// void initEncoders()
+// {  
+//   Serial.printf("Encoders init\n");
+//   pinMode(EN_LEFT_BACK, INPUT_PULLUP);  
+//   pinMode(EN_RIGHT_BACK, INPUT_PULLUP);  
+//   attachInterrupt(digitalPinToInterrupt(EN_LEFT_BACK), isr_LEFT_BACK, FALLING);  
+//   attachInterrupt(digitalPinToInterrupt(EN_RIGHT_BACK), isr_RIGHT_BACK, FALLING);  
+// } 
 
 
 
