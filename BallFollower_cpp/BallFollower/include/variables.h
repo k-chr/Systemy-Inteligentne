@@ -21,6 +21,7 @@ struct dataPacket
     char message[64] = {0};
     float first = 0.0f;
     float second = 0.0f;
+    float third = 0.0f;
 
 };
 
@@ -44,7 +45,7 @@ const uint8_t IN_RIGHT2=28;
 const uint8_t EN_RIGHT_BACK=16;
 const uint8_t PWM_RIGHT=22;
 
-double KpM = 0.02, KiM = 0.20, KdM = 0;  
+double KpM = 4.0, KiM = 0.20, KdM = 0;  
  
 float Kp = 20.0f;
 float Ki = 8.0f;
