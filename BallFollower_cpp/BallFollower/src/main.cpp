@@ -24,8 +24,8 @@ dataPacket packet;
 
 
 boolean newData = false;
-boolean obstacleTooClose = false;
-boolean obstacleVeryClose = false;
+boolean obstacleTooClose[3] = {false};
+boolean obstacleVeryClose[3] = {false};
 
 float yawRequested = 0;
 float pitchRequested = 0;
@@ -38,8 +38,18 @@ NewPing sonarMiddle(ultrasound_trigger_pin[(int)UltraSoundSensor::Front],
                      ultrasound_echo_pin[(int)UltraSoundSensor::Front], 
                      maxDistance);
 
-unsigned int pingDelay = 30; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
-unsigned long pingTimer;     // Holds the next ping time.
+NewPing sonarLeft(ultrasound_trigger_pin[(int)UltraSoundSensor::Left], 
+                     ultrasound_echo_pin[(int)UltraSoundSensor::Left], 
+                     maxDistance);
+
+NewPing sonarRight(ultrasound_trigger_pin[(int)UltraSoundSensor::Right], 
+                     ultrasound_echo_pin[(int)UltraSoundSensor::Right], 
+                     maxDistance);
+
+unsigned int pingDelay = 90; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second.
+unsigned long pingTimerRight;     // Holds the next ping time.
+unsigned long pingTimerLeft;     // Holds the next ping time.
+unsigned long pingTimerMiddle;     // Holds the next ping time.
 
 
 // ##########
@@ -125,15 +135,37 @@ void slowDownSatan()
     SetPowerLevel(EngineSelector::Right, outputRightBack);
 }
 
-void echoCheck() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
+void echoCheckMiddle() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
   // Don't do anything here!
   if (sonarMiddle.check_timer()) { // This is how you check to see if the ping was received.
     // Here's where you can add code.
     // Serial.print("Ping: ");
-    int computedDistanceInCm = sonarMiddle.ping_result / US_ROUNDTRIP_CM;
-    obstacleTooClose = computedDistanceInCm >= 0 && computedDistanceInCm < 30;
-    obstacleVeryClose = computedDistanceInCm >= 0 && computedDistanceInCm < 10;
-    // Serial.print(computedDistanceInCm); // Ping returned, uS result in ping_result, convert to cm with US_ROUNDTRIP_CM.
+    int computedDistance = sonarMiddle.ping_result / US_ROUNDTRIP_CM;
+    obstacleTooClose[0] = (computedDistance > 0 && computedDistance < 30);
+    // Serial.println("cm");
+  }
+  // Don't do anything here!
+}
+
+void echoCheckLeft() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
+  // Don't do anything here!
+  if (sonarLeft.check_timer()) { // This is how you check to see if the ping was received.
+    // Here's where you can add code.
+    // Serial.print("Ping: ");
+    int computedDistance = sonarLeft.ping_result / US_ROUNDTRIP_CM;
+    obstacleTooClose[1] = (computedDistance > 0 && computedDistance < 30);
+    // Serial.println("cm");
+  }
+  // Don't do anything here!
+}
+
+void echoCheckRight() { // Timer2 interrupt calls this function every 24uS where you can check the ping status.
+  // Don't do anything here!
+  if (sonarRight.check_timer()) { // This is how you check to see if the ping was received.
+    // Here's where you can add code.
+    // Serial.print("Ping: ");
+    int computedDistance = sonarRight.ping_result / US_ROUNDTRIP_CM;
+    obstacleTooClose[2] = (computedDistance > 0 && computedDistance < 30);
     // Serial.println("cm");
   }
   // Don't do anything here!
@@ -145,7 +177,9 @@ void setup() {
     Serial.println("This demo expects 3 pieces of data - text, an integer and a floating point value");
     Serial.println("Enter data in this style <HelloWorld, 12, 24.7>  ");
     Serial.println();
-    pingTimer = millis(); // Start now.
+    pingTimerLeft = millis(); // Start now.
+    pingTimerMiddle = pingTimerLeft + 30;
+    pingTimerRight = pingTimerLeft + 60;
 
     // Each platform has to do this independently, checked manually
     calibrateServo(ServoSelector::Yaw, (int)YawCalibrationCenter);
@@ -179,14 +213,22 @@ long positionLeft  = 0;
 long positionRight = 0;
 void loop() {
          // Notice how there's no delays in this sketch to allow you to do other processing in-line while doing distance pings.
-   if (millis() >= pingTimer)
+   if (millis() >= pingTimerMiddle)
    {   // pingSpeed milliseconds since last ping, do another ping.
-      pingTimer += pingDelay;      // Set the next ping time.
-      sonarMiddle.ping_timer(echoCheck); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+      pingTimerMiddle += pingDelay;
+      sonarMiddle.ping_timer(echoCheckMiddle); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
       positionLeft = leftSide.read();
       positionRight = rightSide.read();
      // Serial.println("Left = " + String(positionLeft) + "; Right = " + String(positionRight));
 
+   }
+   if (millis() >= pingTimerLeft) {
+      pingTimerLeft += pingDelay;
+      sonarLeft.ping_timer(echoCheckLeft); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
+   }
+   if (millis() >= pingTimerRight) {
+      pingTimerRight += pingDelay;
+      sonarRight.ping_timer(echoCheckRight); // Send out the ping, calls "echoCheck" function every 24uS where you can check the ping status.
    }
     // parse input data
     recvWithStartEndMarkers();
@@ -198,57 +240,58 @@ void loop() {
         //     // Serial.println("SetPointLeftBack changed");
         // }  
     }
-    if (obstacleVeryClose == true && (outputLeftBack >= 0.1 || outputRightBack >= 0.1)) {
-        Brake();
-    } else if (obstacleTooClose == true && (outputLeftBack >= 0.1 || outputRightBack >= 0.1)) {
-        slowDownSatan();
-    } else {
-        if (newData == true) {
-            strcpy(tempChars, receivedChars);
-                // this temporary copy is necessary to protect the original data
-                //   because strtok() used in parseData() replaces the commas with \0
-            packet = parseData();
-            // showParsedData(packet);
+    
+    if (newData == true) {
+        strcpy(tempChars, receivedChars);
+            // this temporary copy is necessary to protect the original data
+            //   because strtok() used in parseData() replaces the commas with \0
+        packet = parseData();
+        // showParsedData(packet);
 
-            if (strcmp(packet.message, "servo") == 0)
+        if (strcmp(packet.message, "servo") == 0)
+        {
+
+            if (isStopped == false)
             {
+                yawRequested = packet.first;
+                pitchRequested = packet.second;
+                distanceRequested = packet.third;
 
-                if (isStopped == false)
                 {
-                    yawRequested = packet.first;
-                    pitchRequested = packet.second;
-                    distanceRequested = packet.third;
-
-                    {
-                        //float yawError = -(yawRequested / (HorizontalFOV/2) );
-                        
-                        float yawError = - yawRequested;
-                        float Kp = 25.0f;
-                        float Ki = 4.0f;
-
-                        float output = Kp * yawError + Ki * yawErrorAccumulated;
-                        output *= 0.8f;
-                        yawErrorAccumulated += yawError;
-                        
-                        // move servo
-                        moveServo(ServoSelector::Yaw,  (int)(YawCalibrationCenter + output));
-                    }
-                    {
-                        
-                        // float pitchError = -(pitchRequested / (VerticalFOV/2));
-                        float pitchError = - pitchRequested;
-                        float Kp = 15.0f;
-                        float Ki = 3.0f;
-
-                        float output = Kp * pitchError + Ki * pitchErrorAccumulated;
-                        output *= 0.8f;
-                        pitchErrorAccumulated += pitchError;
-                        
-                        // move servo
-                        moveServo(ServoSelector::Pitch,  (int)(PitchCalibrationCenter + output));
-                    }
+                    //float yawError = -(yawRequested / (HorizontalFOV/2) );
                     
-                    {
+                    float yawError = - yawRequested;
+                    float Kp = 25.0f;
+                    float Ki = 4.0f;
+
+                    float output = Kp * yawError + Ki * yawErrorAccumulated;
+                    output *= 0.8f;
+                    yawErrorAccumulated = constrain(yawErrorAccumulated + yawError, -20, 20);
+                    // Serial.printf("Yaw error accumulated: %f", yawErrorAccumulated);
+                    
+                    // move servo
+                    moveServo(ServoSelector::Yaw,  (int)(YawCalibrationCenter + output));
+                }
+                {
+                    
+                    // float pitchError = -(pitchRequested / (VerticalFOV/2));
+                    float pitchError = - pitchRequested;
+                    float Kp = 15.0f;
+                    float Ki = 3.0f;
+
+                    float output = Kp * pitchError + Ki * pitchErrorAccumulated;
+                    output *= 0.8f;
+                    pitchErrorAccumulated = constrain(pitchErrorAccumulated + pitchError, -20, 20);
+                    // Serial.printf("Pitch error accumulated: %f", pitchErrorAccumulated);
+                    
+                    // move servo
+                    moveServo(ServoSelector::Pitch,  (int)(PitchCalibrationCenter + output));
+                }
+                
+                {
+                    if (obstacleTooClose[0] == true || obstacleTooClose[1] == true || obstacleTooClose[2] == true) {
+                        slowDownSatan();
+                    } else {
                         const double yawInputMotorsError = (YawCalibrationCenter - yawCurrent) * 0.5;
                         const double inputMotors = distanceRequested * 1000;
                         // inputLeftBack = -inputMotors;
@@ -275,24 +318,25 @@ void loop() {
                     }
                 }
             }
+        }
 
-            if (strcmp(packet.message, "pause") == 0)
-            {
-                slowDownSatan();
-            }
+        if (strcmp(packet.message, "pause") == 0)
+        {
+            slowDownSatan();
+        }
 
-            if (strcmp(packet.message, "stop") == 0)
-            {
-                isStopped = true;
-            }
+        if (strcmp(packet.message, "stop") == 0)
+        {
+            isStopped = true;
+        }
 
-            if (strcmp(packet.message, "start") == 0)
-            {
-                isStopped = false;
-            }
+        if (strcmp(packet.message, "start") == 0)
+        {
+            isStopped = false;
+        }
 
-            newData = false;
-        } 
-    }
+        newData = false;
+    } 
+    
 
 }
