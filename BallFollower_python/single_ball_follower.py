@@ -192,98 +192,35 @@ while True:
         cv2.rectangle(frame, (xROI, yROI), (xROI + roiSize[0], yROI + roiSize[1]), (0, 0, 0), thickness=3)
         minimalContourArea = (width * height)/256
         # draw bounding boxes, find largest object
-        if not grabCircles:
 
-            # get bounding boxes for contrours
+        piłkas = get_ball_like_objects(getCircularContours(contours), minimalContourArea)
+
+        if len(piłkas) > 0:
+            x, y, w, h = piłkas[0]
+            biggestObjectMidPoint = ((x+ w//2), (y + h//2))
+            cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (0, 0, 255), thickness=3)
+            cv2.circle(frame, biggestObjectMidPoint, 4, (255, 0, 0), thickness=3)
+            screenMidPoint = width//2, height//2
+            distanceVector = tuple(map(lambda x, y: x - y, biggestObjectMidPoint, screenMidPoint))
+    
+            yaw = translate(distanceVector[0], -width//2, width//2, -HorizontalFOV//2, HorizontalFOV//2) # up-down
+            yawError = yaw / (HorizontalFOV/2) 
+            pitch = translate(distanceVector[1], -height//2, height//2, -VerticalFOV//2, VerticalFOV//2) # left-right
+            pitchError = pitch / (VerticalFOV/2)
             
-            boundingBoxes = getBoundingBoxes(contours, minimalContourArea)
-
-            for i, boundingBox in enumerate(boundingBoxes):
-            
-                x, y, w, h = boundingBox
-
-                if i is 0:
-                    biggestObjectMidPoint = ((x+ w//2), (y + h//2))
-                    cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (0, 0, 255), thickness=3)
-                    cv2.circle(frame, biggestObjectMidPoint, 4, (255, 0, 0), thickness=3)
-
-                    screenMidPoint = width//2, height//2
-                    distanceVector = tuple(map(lambda x, y: x - y, biggestObjectMidPoint, screenMidPoint))
-
-                    yaw = translate(distanceVector[0], -width//2, width//2, -HorizontalFOV//2, HorizontalFOV//2) # up-down
-                    yawError = yaw / (HorizontalFOV/2) 
-                    pitch = translate(distanceVector[1], -height//2, height//2, -VerticalFOV//2, VerticalFOV//2) # left-right
-                    pitchError = pitch / (VerticalFOV/2)
-
-                    print("Yaw error: {}, Pitch error: {}\n".format(yawError, pitchError))
-                
-                
-                    cv2.line(frame, screenMidPoint, biggestObjectMidPoint, (0, 0, 255))
-                    packet = '<servo, {}, {}>'.format(yawError, pitchError)
-                    packetBytes = bytes(packet, 'utf-8')
-                
-                    ser.write(packetBytes)
-                
-                else:
-                    cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (255, 255, 0), thickness=2)
-                
-                 
+            distanceToObject = (w * h) / (frameResolution[0] * frameResolution[1])
+            print("Yaw error: {}, Pitch error: {}, Distance to object: {}\n".format(yawError, pitchError, distanceToObject))
+                    
+                    
+            cv2.line(frame, screenMidPoint, biggestObjectMidPoint, (0, 0, 255))
+            packet = '<servo, {}, {}, {}>'.format(yawError, pitchError, distanceToObject)
+            packetBytes = bytes(packet, 'utf-8')
+                    
+            ser.write(packetBytes)    
         else:
-            piłkas = get_ball_like_objects(getCircularContours(contours), minimalContourArea)
-            # for i, boundingBox in enumerate(piłkas):
-                       
-            #     x, y, w, h = boundingBox
-            #     if i is 0:
-            #         biggestObjectMidPoint = ((x+ w//2), (y + h//2))
-            #         cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (0, 0, 255), thickness=3)
-            #         cv2.circle(frame, biggestObjectMidPoint, 4, (255, 0, 0), thickness=3)
-            #         screenMidPoint = width//2, height//2
-            #         distanceVector = tuple(map(lambda x, y: x - y, biggestObjectMidPoint, screenMidPoint))
-           
-            #         yaw = translate(distanceVector[0], -width//2, width//2, -HorizontalFOV//2, HorizontalFOV//2) # up-down
-            #         yawError = yaw / (HorizontalFOV/2) 
-            #         pitch = translate(distanceVector[1], -height//2, height//2, -VerticalFOV//2, VerticalFOV//2) # left-right
-            #         pitchError = pitch / (VerticalFOV/2)
-           
-            #         print("Yaw error: {}, Pitch error: {}\n".format(yawError, pitchError))
-                           
-                           
-            #         cv2.line(frame, screenMidPoint, biggestObjectMidPoint, (0, 0, 255))
-            #         packet = '<servo, {}, {}>'.format(yawError, pitchError)
-            #         packetBytes = bytes(packet, 'utf-8')
-                          
-            #         ser.write(packetBytes)
-                               
-                # else:
-                #     cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (255, 255, 0), thickness=2)
-                            # for i, boundingBox in enumerate(piłkas):
-                       
-            if len(piłkas) > 0:
-                x, y, w, h = piłkas[0]
-                biggestObjectMidPoint = ((x+ w//2), (y + h//2))
-                cv2.rectangle(frame, (x, y), ((x+w), (y+h)), (0, 0, 255), thickness=3)
-                cv2.circle(frame, biggestObjectMidPoint, 4, (255, 0, 0), thickness=3)
-                screenMidPoint = width//2, height//2
-                distanceVector = tuple(map(lambda x, y: x - y, biggestObjectMidPoint, screenMidPoint))
-        
-                yaw = translate(distanceVector[0], -width//2, width//2, -HorizontalFOV//2, HorizontalFOV//2) # up-down
-                yawError = yaw / (HorizontalFOV/2) 
-                pitch = translate(distanceVector[1], -height//2, height//2, -VerticalFOV//2, VerticalFOV//2) # left-right
-                pitchError = pitch / (VerticalFOV/2)
-                
-                distanceToObject = (w * h) / (frameResolution[0] * frameResolution[1])
-                print("Yaw error: {}, Pitch error: {}, Distance to object: {}\n".format(yawError, pitchError, distanceToObject))
-                        
-                        
-                cv2.line(frame, screenMidPoint, biggestObjectMidPoint, (0, 0, 255))
-                packet = '<servo, {}, {}, {}>'.format(yawError, pitchError, distanceToObject)
-                packetBytes = bytes(packet, 'utf-8')
-                        
-                ser.write(packetBytes)    
-            else:
-                packet = '<pause, 0, 0>'
-                packetBytes = bytes(packet, 'utf-8')
-                ser.write(packetBytes)
+            packet = '<pause, 0, 0>'
+            packetBytes = bytes(packet, 'utf-8')
+            ser.write(packetBytes)
                 
         cv2.imshow("video", frame)
         cv2.imshow("roi", roi)

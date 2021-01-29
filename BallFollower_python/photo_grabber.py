@@ -3,7 +3,6 @@ import time
 import datetime
 import imutils
 from imutils.video import JetsonVideoStream
-
 import argparse
 import numpy as np
 import cv2
@@ -64,8 +63,8 @@ else:
     isRecording = True
 index = 0
 while True:
-    if datetime.datetime.now() >= endTime:
-        break
+    # if datetime.datetime.now() >= endTime:
+    #     break
   
     frame = vs.read() 
     
@@ -82,9 +81,11 @@ while True:
     if key & 0xFF == 27:
         break
     if key == ord('f'):
-        cv2.imwrite('frames/groot_' + str(index) + '.jpg', frame)
+        now = datetime.datetime.now()
+        timestamp = datetime.datetime.timestamp(now)
+        cv2.imwrite('frames/groot_' + str(timestamp) + '.jpg', frame)
         index += 1
-
+        print("screenshot saved! " + str(timestamp))
     if key == ord('r') and isHeadless is False:
         isRecording = True
     if key == ord('p') and isRecording is True:
